@@ -1,0 +1,24 @@
+# Core data processing
+pandas>=2.0.0
+pyarrow>=14.0.0
+numpy>=1.24.0
+
+# JSON processing
+jsonschema>=4.22.0
+orjson>=3.10.0
+
+# YAML for policy files
+PyYAML>=6.0.1
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Progress bars
+tqdm>=4.66.0
+
+# Hashing for policy fingerprints
+hashlib-additional>=1.0.0
+
+# Optional: Performance profiling
+# memory-profiler>=0.61.0

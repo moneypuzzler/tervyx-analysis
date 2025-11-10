@@ -1,0 +1,80 @@
+name: TERVYX Analysis
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    # Run weekly on Mondays at 00:00 UTC
+    - cron: '0 0 * * 1'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install tabulate  # For pandas.to_markdown()
+
+      - name: Update tervyx submodule
+        run: make update
+
+      - name: Run analysis pipeline
+        run: |
+          make ingest
+          make validate
+          make metrics
+          make figures
+          make report
+
+      - name: Upload analysis artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tervyx-analysis-reports-${{ github.run_number }}
+          path: reports/
+          retention-days: 90
+
+      - name: Display summary
+        run: |
+          echo "=== Analysis Summary ==="
+          if [ -f reports/summary.md ]; then
+            head -n 30 reports/summary.md
+          else
+            echo "ERROR: summary.md not generated"
+            exit 1
+          fi
+
+      - name: Check for policy violations
+        run: |
+          # Fail CI if validation found critical issues
+          # (This is a placeholder - actual validation would parse logs)
+          if grep -q "ERROR" reports/summary.md; then
+            echo "⚠️  Critical validation errors found"
+            exit 1
+          fi
